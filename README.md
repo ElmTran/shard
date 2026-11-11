@@ -14,12 +14,13 @@ A lightweight personal screenshot tool for Windows: capture, annotate, pin, and 
 - **Pin**: pin the selection to the desktop, always on top and draggable. A pinned image is OCR'd in the background with no visible boxes; just drag across the text to select and copy it.
 - **Recognize text**: click the OCR button while capturing. The text is laid over the image as a transparent layer you can select and copy, or copy all at once.
 - **Save**: save as a PNG file.
+- **Settings**: tray menu → 设置… (Settings) to change the capture hotkey (click, then press the new combination) and turn on start with Windows.
 
 ## Shortcuts
 
 | Where | Keys | Action |
 |---|---|---|
-| Global | `Alt+A` | Capture |
+| Global | `Alt+A` (configurable) | Capture |
 | Capture | `Enter` / double-click selection | Copy and close |
 | Capture | `Ctrl+Z` | Undo |
 | Capture | `Ctrl+C` | Copy selected OCR text, or the image if no text is selected |
@@ -30,7 +31,7 @@ A lightweight personal screenshot tool for Windows: capture, annotate, pin, and 
 | Pin | `Ctrl+C` | Copy selected text, or the image if no text is selected |
 | Pin | Right-click | Menu: copy image, copy all text, save, close |
 
-`Alt+A` is also WeChat's screenshot shortcut, and tools like PixPin may take it too. If registration fails, Shard shows a warning; change the shortcut in the other app. Until then, click the tray icon to capture.
+`Alt+A` is also WeChat's screenshot shortcut, and tools like PixPin may take it too. If registration fails, Shard shows a warning and opens Settings so you can pick another hotkey. Until then, click the tray icon to capture. Settings are stored in `%APPDATA%\com.shard.app\config.json`.
 
 ## Tech stack
 

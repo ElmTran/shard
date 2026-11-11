@@ -1,14 +1,17 @@
-//! 托盘：左键截图；菜单：截图、退出。
+//! 托盘：左键截图；菜单：截图（显示当前快捷键）、设置、退出。
 
 use std::time::Duration;
 
 use tauri::{
-    AppHandle,
+    AppHandle, Manager, Wry,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 
-use crate::overlay;
+use crate::{config, hotkey, overlay, settings};
+
+/// “截图”菜单项，快捷键变化时更新文字
+struct CaptureItem(MenuItem<Wry>);
 
 pub fn icon() -> tauri::image::Image<'static> {
     tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png")).expect("tray.png 不是有效的 PNG")
@@ -24,11 +27,23 @@ fn capture_later(app: &AppHandle) {
     });
 }
 
-pub fn setup(app: &AppHandle, hotkey_ok: bool) -> tauri::Result<()> {
-    let label = if hotkey_ok { "截图\tAlt+A" } else { "截图（Alt+A 被占用）" };
-    let capture = MenuItem::with_id(app, "capture", label, true, None::<&str>)?;
+fn capture_label(app: &AppHandle) -> String {
+    let key = config::get(app).hotkey;
+    if hotkey::is_registered(app) { format!("截图\t{key}") } else { format!("截图（{key} 未生效）") }
+}
+
+pub fn sync_hotkey(app: &AppHandle) {
+    if let Some(item) = app.try_state::<CaptureItem>() {
+        let _ = item.0.set_text(capture_label(app));
+    }
+}
+
+pub fn setup(app: &AppHandle) -> tauri::Result<()> {
+    let capture = MenuItem::with_id(app, "capture", capture_label(app), true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", "设置…", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&capture, &PredefinedMenuItem::separator(app)?, &quit])?;
+    let menu = Menu::with_items(app, &[&capture, &settings, &PredefinedMenuItem::separator(app)?, &quit])?;
+    app.manage(CaptureItem(capture));
 
     TrayIconBuilder::with_id("main")
         .icon(icon())
@@ -37,6 +52,7 @@ pub fn setup(app: &AppHandle, hotkey_ok: bool) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "capture" => capture_later(app),
+            "settings" => settings::open(app),
             "quit" => app.exit(0),
             _ => {}
         })

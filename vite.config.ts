@@ -17,6 +17,7 @@ export default defineConfig({
       input: {
         overlay: "src/overlay/index.html",
         pin: "src/pin/index.html",
+        settings: "src/settings/index.html",
       },
     },
   },
