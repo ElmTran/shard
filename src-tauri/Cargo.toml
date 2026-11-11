@@ -1,0 +1,53 @@
+[package]
+name = "shard"
+version = "0.1.0"
+description = "Shard 截图"
+edition = "2024"
+
+[lib]
+name = "shard_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["image-png", "tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+png = "0.18.1"
+ts-rs = "12.0.1"
+
+[target.'cfg(windows)'.dependencies]
+# 版本和 wry 用的保持一致，才能直接用它的 WebView2 COM 类型（SharedBuffer 传截图）
+webview2-com = "0.39"
+windows-core = "0.62"
+windows = { version = "0.62", features = [
+    "Foundation",
+    "Globalization",
+    "Graphics_Imaging",
+    "Media_Ocr",
+    "Security_Cryptography",
+    "Storage_Streams",
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Com",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_System_SystemInformation",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.dev.package."*"]
+# 依赖（PNG 编码等）在调试版里也开优化。本 crate 不开：opt-level>0 + 增量编译会触发链接错误（LNK2019 anon.*.llvm）
+opt-level = 2
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

@@ -1,0 +1,4 @@
+/target/
+/gen/schemas
+# release 打包用的单独构建目录
+/target-release/

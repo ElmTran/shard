@@ -1,0 +1,341 @@
+@import "tailwindcss";
+
+:root {
+  --mask: rgb(0 0 0 / 0.45);
+  --accent: #1677ff;
+  --tb-bg: rgb(255 255 255 / 0.97);
+  --tb-fg: rgb(31 31 31);
+  --divider: rgb(0 0 0 / 0.1);
+  --hover: rgb(0 0 0 / 0.06);
+  --error: #d4380d;
+  --font: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+
+/* 工具栏跟随系统深浅色 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #4096ff;
+    --tb-bg: rgb(40 40 44 / 0.97);
+    --tb-fg: rgb(240 240 240);
+    --divider: rgb(255 255 255 / 0.12);
+    --hover: rgb(255 255 255 / 0.08);
+    --error: #ff7a45;
+  }
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font);
+}
+
+/* ---- 截图窗口 ---- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+}
+
+/* 界面层（遮罩、边框、工具栏）：出现时淡入，退出时淡出 */
+.ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: fade-in 120ms ease-out;
+  transition: opacity 120ms ease-in;
+}
+
+.ui > * {
+  pointer-events: auto;
+}
+
+.ui-leaving {
+  opacity: 0;
+}
+
+.ui-leaving > * {
+  pointer-events: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 选区外压暗：四块矩形 */
+.mask {
+  position: absolute;
+  background: var(--mask);
+  pointer-events: none !important;
+}
+
+/* 选区边框：白色细线 + 外侧一圈暗线，在深浅背景上都清楚；画在选区外面，不盖住截进去的像素 */
+.sel-frame {
+  position: absolute;
+  pointer-events: none !important;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.9),
+    0 0 0 2px rgb(0 0 0 / 0.28),
+    0 8px 32px rgb(0 0 0 / 0.35);
+}
+
+/* 四角 L 形调整角 */
+.corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 0 solid var(--accent);
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.4));
+}
+
+.corner-nw {
+  left: -4px;
+  top: -4px;
+  border-left-width: 3px;
+  border-top-width: 3px;
+  border-top-left-radius: 3px;
+}
+
+.corner-ne {
+  right: -4px;
+  top: -4px;
+  border-right-width: 3px;
+  border-top-width: 3px;
+  border-top-right-radius: 3px;
+}
+
+.corner-se {
+  right: -4px;
+  bottom: -4px;
+  border-right-width: 3px;
+  border-bottom-width: 3px;
+  border-bottom-right-radius: 3px;
+}
+
+.corner-sw {
+  left: -4px;
+  bottom: -4px;
+  border-left-width: 3px;
+  border-bottom-width: 3px;
+  border-bottom-left-radius: 3px;
+}
+
+/* 四边中点的小横条 */
+.edge {
+  position: absolute;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.85);
+}
+
+.edge-n,
+.edge-s {
+  left: 50%;
+  width: 18px;
+  height: 3px;
+  transform: translateX(-50%);
+}
+
+.edge-n {
+  top: -2px;
+}
+
+.edge-s {
+  bottom: -2px;
+}
+
+.edge-e,
+.edge-w {
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  transform: translateY(-50%);
+}
+
+.edge-e {
+  right: -2px;
+}
+
+.edge-w {
+  left: -2px;
+}
+
+.size-label {
+  position: absolute;
+  padding: 2px 8px;
+  font: 500 12px/20px var(--font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgb(20 20 24 / 0.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  pointer-events: none !important;
+  white-space: nowrap;
+}
+
+.toolbar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--tb-bg);
+  color: var(--tb-fg);
+  box-shadow:
+    0 6px 20px rgb(0 0 0 / 0.25),
+    0 0 0 1px rgb(0 0 0 / 0.08);
+  font: 13px var(--font);
+  cursor: default;
+  white-space: nowrap;
+}
+
+.tb-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.tb-btn:hover:not(:disabled),
+.tb-text:hover {
+  background: var(--hover);
+}
+
+.tb-btn:disabled {
+  opacity: 0.35;
+}
+
+.tb-btn-active,
+.tb-btn-active:hover:not(:disabled) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.tb-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--accent);
+}
+
+.tb-note {
+  max-width: 280px;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.6;
+}
+
+.tb-error {
+  color: var(--error);
+  opacity: 1;
+}
+
+.text-input {
+  position: absolute;
+  min-width: 2em;
+  padding: 2px;
+  border: 1px dashed;
+  border-radius: 2px;
+  background: transparent;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+  field-sizing: content;
+}
+
+/* ---- OCR 文字层 ---- */
+
+.text-layer {
+  position: absolute;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.text-layer span {
+  position: absolute;
+  white-space: pre;
+  color: transparent;
+  transform-origin: 0 0;
+  font-family: var(--font);
+  background: rgb(22 119 255 / 0.12);
+  border-radius: 2px;
+}
+
+.text-layer span::selection {
+  color: transparent;
+  background: rgb(22 119 255 / 0.45);
+}
+
+/* 贴图：平时看不出文字层，框选时才有高亮 */
+.text-layer-quiet span {
+  background: transparent;
+}
+
+/* ---- 贴图窗口 ---- */
+
+.transparent-page,
+.transparent-page body,
+.transparent-page #root {
+  background: transparent;
+}
+
+/* 四周留 16px 透明边距画阴影（和 Rust 侧 pin::PAD 一致） */
+.pin {
+  position: fixed;
+  inset: 0;
+  padding: 16px;
+  transition: opacity 120ms ease-in;
+}
+
+.pin-image {
+  position: relative;
+  width: fit-content;
+  cursor: move;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.06),
+    0 2px 6px rgb(0 0 0 / 0.08),
+    0 6px 16px rgb(0 0 0 / 0.12);
+}
+
+.pin-closing {
+  opacity: 0;
+}
+
+.pin-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pin-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  font: 12px/18px var(--font);
+  color: #fff;
+  background: rgb(0 0 0 / 0.7);
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
