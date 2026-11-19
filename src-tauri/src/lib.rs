@@ -10,7 +10,8 @@ mod save;
 mod settings;
 mod tray;
 
-use tauri::AppHandle;
+use tauri::webview::PageLoadEvent;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 use tauri_plugin_global_shortcut::ShortcutState;
@@ -35,6 +36,11 @@ pub fn run() {
         .manage(overlay::CaptureState::default())
         .manage(pin::Pins::default())
         .manage(hotkey::Hotkey::default())
+        .on_page_load(|webview, payload| {
+            if payload.event() == PageLoadEvent::Finished && webview.label() == overlay::OVERLAY {
+                overlay::page_loaded(webview.app_handle());
+            }
+        })
         .setup(|app| {
             let handle = app.handle();
             config::init(handle);
@@ -56,6 +62,7 @@ pub fn run() {
             commands::pin_save,
             commands::pin_ocr,
             overlay::close_overlay,
+            overlay::overlay_released,
             pin::pin_ready,
             pin::get_pin_image,
             pin::close_pin,

@@ -94,6 +94,8 @@ export async function presentWindow(): Promise<void> {
 
 export const ipc = {
   closeOverlay: () => invoke<void>("close_overlay"),
+  /** 第 session 次截图已经释放，窗口可以休眠了 */
+  overlayReleased: (session: number) => invoke<void>("overlay_released", { session }),
   overlayCopy: (img: ImageData) => invoke<void>("overlay_copy", encodeImage(img)),
   overlayPin: (img: ImageData, x: number, y: number) =>
     invoke<void>("overlay_pin", encodeImage(img), { headers: { "x-pos": `${x},${y}` } }),

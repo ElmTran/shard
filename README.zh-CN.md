@@ -40,6 +40,7 @@
 | 壳 | [Tauri v2](https://tauri.app) |
 | 前端 | React 19、TypeScript、Tailwind CSS 4、Vite（不用组件库和状态库） |
 | 截图 | GDI `BitBlt` 直接写进 WebView2 SharedBuffer 共享内存，前端用 `VideoFrame` 转成位图，不经过 IPC 拷贝 |
+| 待机 | 隐藏的 WebView 会挂起（`TrySuspend` + 低内存目标），挂在托盘时只占约 15 MB 内存 |
 | 标注 | Canvas 2D，图形保存为矢量列表，导出时按物理像素合成 |
 | OCR | `Windows.Media.Ocr`（系统自带，离线） |
 | 系统交互 | `windows` crate：Win32 剪贴板、DWM（隐身显示、关闭窗口动画、圆角） |

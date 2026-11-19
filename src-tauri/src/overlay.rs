@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, WindowEvent};
 
-use crate::platform::{screen, shared, window};
+use crate::platform::{screen, shared, sleep, window};
 
 pub const OVERLAY: &str = "overlay";
 
@@ -61,6 +61,8 @@ pub fn start(app: &AppHandle) {
     *state.origin.lock().unwrap() = (b.x, b.y);
     // 隐藏状态下先铺满虚拟屏幕，前端拿到截图时布局已经是对的
     window::set_bounds(&win, b.x, b.y, b.w, b.h);
+    // 先唤醒再传截图：挂起的页面收不到。with_webview 按顺序执行，唤醒一定在 post_screen 之前
+    sleep::set_awake(&win, true);
 
     let handle = app.clone();
     let posted = win.with_webview(move |webview| {
@@ -75,7 +77,10 @@ pub fn start(app: &AppHandle) {
     }
 }
 
-/// 隐藏截图窗口，并通知前端释放这次截图
+/// 隐藏截图窗口（所有关闭方式都走这里），并通知前端释放这次截图。
+/// 不在这里立刻休眠：前端隐藏后还要过 300ms 才释放截图（见 Overlay.tsx），这时挂起的话
+/// 截图会一直占着内存，而且那个定时器会推迟到下次唤醒才执行，可能把新截图清掉。
+/// 前端释放完调 overlay_released，那时再休眠
 pub fn close(app: &AppHandle) {
     let state = app.state::<CaptureState>();
     if let Some(win) = overlay_window(app) {
@@ -84,6 +89,23 @@ pub fn close(app: &AppHandle) {
     }
     state.pinning.store(false, Ordering::Release);
     state.active.store(false, Ordering::Release);
+}
+
+/// 截图窗口闲着就休眠：启动后页面加载完、每次截图释放后。
+/// 和 start 都在主线程执行，不会出现检查完 active 之后又开始截图、却被这里挂起的情况
+fn sleep_if_idle(app: &AppHandle, session: u32) {
+    let state = app.state::<CaptureState>();
+    if state.active.load(Ordering::Acquire) || state.session.load(Ordering::Acquire) != session {
+        return;
+    }
+    if let Some(win) = overlay_window(app) {
+        sleep::set_awake(&win, false);
+    }
+}
+
+/// 启动时窗口是隐藏的：页面加载完就休眠
+pub fn page_loaded(app: &AppHandle) {
+    sleep_if_idle(app, app.state::<CaptureState>().session.load(Ordering::Acquire));
 }
 
 /// 贴图要从截图生成：先不隐藏截图窗口
@@ -117,4 +139,10 @@ pub fn origin(app: &AppHandle) -> (i32, i32) {
 #[tauri::command]
 pub fn close_overlay(app: AppHandle) {
     close(&app);
+}
+
+/// 前端已经释放了第 session 次截图
+#[tauri::command]
+pub fn overlay_released(app: AppHandle, session: u32) {
+    sleep_if_idle(&app, session);
 }

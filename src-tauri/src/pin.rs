@@ -14,7 +14,7 @@ use tauri::{
 };
 
 use crate::image::Image;
-use crate::platform::window;
+use crate::platform::{sleep, window};
 
 /// 图片四周的透明边距（逻辑像素），给 CSS 阴影留地方。前端 .pin 的 padding 要和它一致
 pub const PAD: f64 = 16.0;
@@ -113,6 +113,8 @@ pub fn create(app: &AppHandle, image: Image, x: i32, y: i32) -> Result<(), Strin
     pins.images.lock().unwrap().insert(label.clone(), image);
     // 页面已经在等：通知它加载；还没加载完的话，它加载完调 pin_ready 时会发现图片已经到了
     if ready {
+        // 备用窗口在等的时候休眠了，先唤醒才收得到事件
+        sleep::set_awake(&win, true);
         let _ = app.emit_to(&label, "shard://pin-load", ());
     }
     drop(spare);
@@ -138,6 +140,8 @@ pub fn pin_ready(window: WebviewWindow, pins: tauri::State<'_, Pins>) -> bool {
     }
     if spare.label.as_deref() == Some(window.label()) {
         spare.ready = true;
+        // 隐藏着等图片，先休眠。拿去用时 create 会唤醒
+        sleep::set_awake(&window, false);
     }
     false
 }

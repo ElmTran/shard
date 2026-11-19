@@ -40,6 +40,7 @@ A lightweight personal screenshot tool for Windows: capture, annotate, pin, and 
 | Shell | [Tauri v2](https://tauri.app) |
 | Frontend | React 19, TypeScript, Tailwind CSS 4, Vite (no component or state libraries) |
 | Capture | GDI `BitBlt` writes straight into a WebView2 SharedBuffer; the frontend turns it into a bitmap with `VideoFrame`, with no IPC copy |
+| Idle | Hidden WebViews are suspended (`TrySuspend` + low memory target), so in the tray Shard uses about 15 MB of RAM |
 | Annotation | Canvas 2D; shapes are kept as a vector list and composited at physical resolution on export |
 | OCR | `Windows.Media.Ocr` (built into Windows, offline) |
 | System | `windows` crate: Win32 clipboard, DWM (cloaked show, disabled window animations, corners) |

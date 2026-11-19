@@ -79,6 +79,8 @@ export function Overlay() {
   const presented = useRef(0);
   const ocrSeq = useRef(0);
   const leavingRef = useRef(false);
+  /** 刚释放的那次截图，等页面清空后告诉 Rust 可以休眠了 */
+  const released = useRef<number | null>(null);
   const capRef = useRef<Capture | null>(null);
   capRef.current = cap;
 
@@ -115,15 +117,21 @@ export function Overlay() {
   );
 
   // 窗口已被 Rust 隐藏：过一会再释放截图。立刻清掉的话页面会变成黑底，
-  // 而 DWM 有时还没真正把窗口藏起来，就会闪一帧黑屏。只处理当前这次，防止迟到的通知清掉新截图
+  // 而 DWM 有时还没真正把窗口藏起来，就会闪一帧黑屏。只处理当前这次，防止迟到的通知清掉新截图。
+  // 释放后通知 Rust 让 WebView 休眠（休眠期间定时器不走，所以不能由 Rust 在隐藏时直接休眠）
   useEffect(() => {
     const unlisten = onHidden((session) => {
       setTimeout(() => {
         const current = capRef.current;
-        if (!current || current.session !== session) return;
+        if (current && current.session !== session) return;
+        if (!current) {
+          ipc.overlayReleased(session).catch(console.error);
+          return;
+        }
         current.bitmap.close();
         resetEditing();
         mosaic.current = null;
+        released.current = session;
         setCap(null);
       }, 300);
     });
@@ -131,6 +139,14 @@ export function Overlay() {
       unlisten.then((f) => f());
     };
   }, []);
+
+  // 截图画布已经从页面上移除，再休眠
+  useEffect(() => {
+    if (cap || released.current === null) return;
+    const session = released.current;
+    released.current = null;
+    ipc.overlayReleased(session).catch(console.error);
+  }, [cap]);
 
   useLayoutEffect(() => {
     if (!cap || presented.current === cap.session) return;
